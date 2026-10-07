@@ -9,8 +9,9 @@ research write-ups describe the models:
 [Akshara](https://convozen.ai/research/article/akshara) and
 [Ragini](https://convozen.ai/research/article/ragini).
 
-> This integration is maintained by [ConvoZen](https://convozen.ai/). I work at
-> ConvoZen on the voice models these services wrap.
+> A community integration, maintained by [ConvoZen](https://convozen.ai/) —
+> not by the Pipecat team. Please report issues here rather than on the Pipecat
+> repository.
 
 | Service | Class | Base class |
 | --- | --- | --- |
