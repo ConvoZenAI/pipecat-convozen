@@ -49,9 +49,9 @@ dev = ["pytest>=8", "pytest-asyncio>=0.25", "ruff"]
 
 [project.urls]
 Homepage = "https://convozen.ai"
-Documentation = "https://github.com/convozen/pipecat-convozen#readme"
-Source = "https://github.com/convozen/pipecat-convozen"
-Changelog = "https://github.com/convozen/pipecat-convozen/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/ConvoZenAI/pipecat-convozen#readme"
+Source = "https://github.com/ConvoZenAI/pipecat-convozen"
+Changelog = "https://github.com/ConvoZenAI/pipecat-convozen/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "pipecat_convozen/__init__.py"
