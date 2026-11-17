@@ -3,8 +3,9 @@
 Pipecat services for [ConvoZen](https://convozen.ai/)'s speech models: **Akshara**
 for speech-to-text and **Ragini** for text-to-speech.
 
-Both cover nine Indian languages — Bengali, English, Gujarati, Hindi, Kannada,
-Malayalam, Marathi, Tamil and Telugu — including code-mixed speech. ConvoZen's
+Akshara transcribes nine Indian languages — Bengali, English, Gujarati, Hindi,
+Kannada, Malayalam, Marathi, Tamil and Telugu — including code-mixed speech.
+Ragini 2.0 speaks English, Hindi, Kannada, Tamil and Telugu. ConvoZen's
 research write-ups describe the models:
 [Akshara](https://convozen.ai/research/article/akshara) and
 [Ragini](https://convozen.ai/research/article/ragini).
@@ -61,7 +62,7 @@ async with aiohttp.ClientSession() as session:
     tts = ConvozenHttpTTSService(
         api_key=os.environ["CONVOZEN_API_KEY"],
         aiohttp_session=session,
-        settings=ConvozenHttpTTSService.Settings(voice="roohi", language=Language.HI),
+        settings=ConvozenHttpTTSService.Settings(voice="shrajay", language=Language.HI),
     )
 
     user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
@@ -101,15 +102,23 @@ available on the `TranscriptionFrame` `result` payload.
 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
-| `model` | `str` | `"ragini-v1"` | `"ragini-v1"` or the lighter `"ragini-lite"` |
-| `voice` | `str` | `"roohi"` | Any voice the account has access to |
-| `language` | `Language \| str` | `Language.EN` | Language for synthesis |
-| `speed` | `float` | `1.0` | Speaking rate multiplier |
+| `model` | `str` | `"ragini-v2"` | `"ragini-v2"` (Ragini 2.0), currently the only supported model |
+| `voice` | `str` | `"shrajay"` | A voice for the chosen model and language (below) |
+| `language` | `Language \| str` | `Language.EN` | `en`, `hi`, `kn`, `ta` or `te` |
 
-Voices: `roohi`, `amaya`, `kiyansh`, `neeraj`, `manya`, `nidhi`, `ira`, `trisha`,
-`charvi`. Audio streams back as it is generated, which keeps time-to-first-audio
-down. `sample_rate` defaults to the model's native rate — 24000 Hz for
-`ragini-v1`, 22050 Hz for `ragini-lite`.
+Ragini 2.0 voices depend on the language:
+
+| Languages | Voices |
+| --- | --- |
+| `en`, `hi` | `shrajay` (default), `siddharth`, `parmi`, `sherin`, `bhavya`, `shreya` |
+| `kn`, `ta`, `te` | `amaya`, `parmi`, `roohi`, `bhavya`, `shrajay`, `siddharth` |
+
+An unknown voice name is not an error — the API returns an arbitrary voice — so
+check the spelling. Ragini 2.0 has no speaking-rate control.
+
+Ragini 2.0 always returns 48 kHz audio; it is resampled to the pipeline's output
+rate automatically. Audio streams back as it
+is generated, which keeps time-to-first-audio down.
 
 Both services accept `base_url=` to reach a self-hosted ConvoZen deployment.
 
@@ -138,7 +147,7 @@ network access are needed.
 
 ## Compatibility
 
-Tested with **Pipecat v1.12.0**.
+Tested with **Pipecat v1.16.0**.
 
 ## License
 

@@ -7,7 +7,7 @@
 """ConvoZen Ragini text-to-speech service implementation."""
 
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import ClassVar
 
 import aiohttp
@@ -17,18 +17,27 @@ from pipecat.services.settings import TTSSettings
 from pipecat.services.tts_service import TTSService
 from pipecat.transcriptions.language import Language
 from pipecat.utils.tracing.service_decorators import traced_tts
-from pipecat.utils.types import NOT_GIVEN, NotGiven
+from pipecat.utils.types import NotGiven
 
 CONVOZEN_BASE_URL = "https://voice.convozen.ai/sdk-models/developer-api/api"
 
-# Native output rate per model. Ragini resamples on request, but asking for the
-# model's own rate avoids a resampling pass on the server.
+# Native output rate per model, keyed by wire name. Ragini 2.0 always returns
+# 48 kHz whatever rate is requested, so the service asks for the model's own
+# rate and lets Pipecat resample to the pipeline's rate from the WAV header.
 MODEL_SAMPLE_RATES: dict[str, int] = {
-    "ragini-v1": 24000,
-    "ragini-lite": 22050,
+    "ragini-v2": 48000,
 }
 
-LANGUAGES: set[str] = {"bn", "en", "gu", "hi", "kn", "ml", "mr", "ta", "te"}
+# Spellings accepted for each model, mapped to the name the API expects.
+MODEL_ALIASES: dict[str, str] = {
+    "ragini-v2": "ragini-v2",
+    "ragini_v2": "ragini-v2",
+    "ragini-2": "ragini-v2",
+    "ragini-2.0": "ragini-v2",
+}
+
+# Ragini 2.0 rejects any other language with a 400.
+LANGUAGES: set[str] = {"en", "hi", "kn", "ta", "te"}
 
 _MAX_ERROR_BODY = 512
 
@@ -50,19 +59,17 @@ def language_to_convozen_language(language: Language) -> str | None:
 class ConvozenHttpTTSSettings(TTSSettings):
     """Settings for ConvozenHttpTTSService.
 
-    Parameters:
-        speed: Speaking rate multiplier; 1.0 is the natural pace.
+    Ragini 2.0 has no speaking-rate control, so only the common TTS settings
+    (model, voice, language) apply.
     """
-
-    speed: float | None | NotGiven = field(default_factory=lambda: NOT_GIVEN)
 
 
 class ConvozenHttpTTSService(TTSService):
     """ConvoZen Ragini text-to-speech service.
 
-    Synthesizes speech through Ragini's REST API, covering nine Indian
-    languages. Audio streams back as a chunked WAV as it is generated, which
-    keeps time-to-first-audio down.
+    Synthesizes speech through Ragini's REST API in English, Hindi, Kannada,
+    Tamil and Telugu. Audio streams back as a chunked WAV as it is generated,
+    which keeps time-to-first-audio down.
 
     Example::
 
@@ -70,7 +77,7 @@ class ConvozenHttpTTSService(TTSService):
             api_key=os.getenv("CONVOZEN_API_KEY"),
             aiohttp_session=session,
             settings=ConvozenHttpTTSService.Settings(
-                voice="roohi",
+                voice="shrajay",
                 language=Language.HI,
             ),
         )
@@ -84,7 +91,7 @@ class ConvozenHttpTTSService(TTSService):
         *,
         api_key: str,
         aiohttp_session: aiohttp.ClientSession,
-        model: str = "ragini-v1",
+        model: str = "ragini-v2",
         base_url: str = CONVOZEN_BASE_URL,
         sample_rate: int | None = None,
         settings: ConvozenHttpTTSSettings | None = None,
@@ -95,17 +102,17 @@ class ConvozenHttpTTSService(TTSService):
         Args:
             api_key: ConvoZen API key for authentication.
             aiohttp_session: Shared aiohttp session for HTTP requests.
-            model: Ragini model, ``"ragini-v1"`` (default) or ``"ragini-lite"``.
+            model: Ragini model. ``"ragini-v2"`` (Ragini 2.0) is supported.
             base_url: API base URL, for self-hosted deployments.
-            sample_rate: Output sample rate. Defaults to the model's native rate.
-            settings: Runtime-updatable settings (voice, language, speed).
+            sample_rate: Output sample rate. Defaults to the pipeline's rate;
+                audio is resampled from the model's native rate.
+            settings: Runtime-updatable settings (voice, language).
             **kwargs: Additional arguments passed to TTSService.
         """
         default_settings = self.Settings(
             model=model,
-            voice="roohi",
+            voice="shrajay",
             language=Language.EN,
-            speed=1.0,
         )
         if settings is not None:
             default_settings.apply_update(settings)
@@ -135,9 +142,14 @@ class ConvozenHttpTTSService(TTSService):
         """
         return language_to_convozen_language(language)
 
+    def _wire_model(self) -> str:
+        """Model name as the API expects it, accepting the documented aliases."""
+        model = str(self._settings.model)
+        return MODEL_ALIASES.get(model.strip().lower(), model)
+
     def _request_sample_rate(self) -> int:
-        """Rate to ask Ragini for, defaulting to the model's native rate."""
-        return self.sample_rate or MODEL_SAMPLE_RATES.get(str(self._settings.model), 24000)
+        """Rate to ask Ragini for: the model's native rate."""
+        return MODEL_SAMPLE_RATES.get(self._wire_model(), 48000)
 
     def _build_body(self, text: str) -> dict[str, str]:
         """Build the urlencoded body for the synthesis endpoint.
@@ -146,14 +158,12 @@ class ConvozenHttpTTSService(TTSService):
         the endpoint always returns WAV.
         """
         language = self._settings.language
-        speed = self._settings.speed
         return {
             "text": text,
             "language": "en" if isinstance(language, NotGiven) else str(language),
             "speaker": str(self._settings.voice),
-            "model": str(self._settings.model),
+            "model": self._wire_model(),
             "sample_rate": str(self._request_sample_rate()),
-            "speed": "1.0" if isinstance(speed, NotGiven) else str(speed),
             "stream": "true",
         }
 

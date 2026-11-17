@@ -67,7 +67,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             api_key=os.environ["CONVOZEN_API_KEY"],
             aiohttp_session=session,
             settings=ConvozenHttpTTSService.Settings(
-                voice="roohi",
+                voice="shrajay",
                 language=Language.HI,
             ),
         )
