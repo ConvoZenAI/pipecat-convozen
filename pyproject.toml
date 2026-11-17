@@ -44,7 +44,7 @@ classifiers = [
 dependencies = ["pipecat-ai>=1.11.0"]
 
 [project.optional-dependencies]
-example = ["pipecat-ai[runner,webrtc,silero,openai]>=1.11.0", "python-dotenv>=1.0"]
+example = ["pipecat-ai[daily,runner,webrtc,silero,openai]>=1.11.0", "python-dotenv>=1.0"]
 dev = ["pytest>=8", "pytest-asyncio>=0.25", "ruff"]
 
 [project.urls]

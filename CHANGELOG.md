@@ -3,6 +3,13 @@
 All notable changes to **pipecat-convozen** are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-11-17
+
+### Fixed
+
+- The `example` extra now installs Pipecat's `daily` extra. The example bot
+  imports the Daily transport, so it failed to start without it.
+
 ## [0.2.0] - 2026-11-17
 
 ### Changed
